@@ -1,8 +1,9 @@
-import requests
-import os
 from geopy.geocoders import Nominatim
 from dotenv import load_dotenv
 from threadParallel import parallel
+from asyncParallel import get_cities_weather
+from utils import write_to_file
+import time
 
 load_dotenv()
 
@@ -34,23 +35,15 @@ def get_all_cities(latMin: float, latMax: float, lonMin: float, lonMax: float):
     print(count)
     return results
 
-
-
-def get_weather(lon: float, lat: float):
-    api_key = os.environ.get('OPENWEATHER_API', '')
-    response = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric")
-    return response.json(), response.status_code
-
-def printWeather(weatherJson):
-    weatherMssg = f"City: {weatherJson['name']}, Longitude: {weatherJson['coord']['lon']}, Latitude: {weatherJson['coord']['lat']}\n"
-    weatherDescription = ', '.join([weather['description'] for weather in weatherJson['weather']])
-    weatherMssg += f"Weather: {weatherDescription}, Temperature: {weatherJson['main']['temp']} Celsius, Humidity: {weatherJson['main']['humidity']}%, Pressure: {weatherJson['main']['pressure']} hPa"
-    print(weatherMssg) 
-
 def main():
-    #weather, status = get_weather(44.34, 10.99)
-    #printWeather(weather)
-    parallel(200, 44.34, 54.34, 10.99, 20.99)
+    start_time = time.perf_counter()
+    res = get_cities_weather(-5.34, 0.34, 10.99, 15.99)
+    end_time = time.perf_counter()
+    print(len(res))
+    write_to_file("citiesWeather.json", res)
+    print(f"Elapsed run time: {end_time - start_time} seconds.")
+
+    #print(len(res))
 
 if __name__=="__main__":
     main()

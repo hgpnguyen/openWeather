@@ -1,39 +1,36 @@
 import asyncio
-import os
 import time
 import httpx
+import settings
+import aiometer
+from functools import partial
 
-def get_list_pos(latMin: float, latMax: float, lonMin: float, lonMax: float):
-    positions = []
-    lat, lon = latMin, lonMin
-    DIV = 10
-    stepLat, stepLon = (latMax-latMin)/DIV, (lonMax-lonMin)/DIV 
-    while lat <= latMax:
-        while lon <= lonMax:
-            positions.append((lat, lon))
-            lon += stepLon
-        lon = lonMin
-        lat += stepLat
-    return positions
+from utils import get_list_pos, filter
 
-async def get_weather_async(client, lat: float, lon: float):
-    api_key = os.environ.get('OPENWEATHER_API', '')
+async def get_weather_async(client: httpx.AsyncClient, lat: float, lon: float) -> any:
+    api_key = settings.API_KEY
     response = await client.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric", timeout=60.0)
-    if response.status_code != 200:
-        print(response)
+    numRetry = 0
+    while response.status_code != 200 and numRetry < settings.RETRY_TIMES:
+        response = await client.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric", timeout=60.0)
+        numRetry += 1
     return response.json()
 
-async def async_parallel(num: int, latMin: float, latMax: float, lonMin: float, lonMax: float):
-    positions = get_list_pos(latMin, latMax, lonMin, lonMax)
-    numRequest = len(positions)
-    tasks, results = [], []
+async def async_parallel(lat_min: float, lat_max: float, lon_min: float, lon_max: float):
+    positions = get_list_pos(lat_min, lat_max, lon_min, lon_max)
     start_time = time.perf_counter()
-    for start in range(0, num, num):
-        async with httpx.AsyncClient() as client:
-            tasks.extend(await asyncio.gather(
-                *[get_weather_async(client, lat, lon) for lat, lon in positions[start:min(start+num, numRequest)]]
-            ))
+    client = httpx.AsyncClient()
+    tasks = [partial(get_weather_async, client, lat, lon) for lat, lon in positions]
+
+    results = await aiometer.run_all(
+        tasks,
+        max_per_second=settings.MAX_API_RATE,
+    )
 
     end_time = time.perf_counter()
     print(f"Elapsed run time of Async: {end_time - start_time} seconds.")
-    return tasks
+    return results
+
+def get_cities_weather(lat_min: float, lat_max: float, lon_min: float, lon_max: float):
+    weather = asyncio.run(async_parallel(lat_min, lat_max, lon_min, lon_max))
+    return filter(weather)
