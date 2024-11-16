@@ -2,6 +2,7 @@ from typing import List, Dict, Tuple
 import json
 import settings
 
+# Get all position in a region
 def get_list_pos(lat_min: float, lat_max: float, lon_min: float, lon_max: float):
     lat, lon = lat_min, lon_min
     div = settings.STEP_DIV
@@ -17,7 +18,7 @@ def get_list_pos(lat_min: float, lat_max: float, lon_min: float, lon_max: float)
         if step_lat == 0:
             break
 
-
+# Filter data so each city has one weather data
 def filter(weather_data: List[any]) -> Dict[str, any]:
     cities_weather = {}
     for weather in weather_data:
@@ -25,6 +26,7 @@ def filter(weather_data: List[any]) -> Dict[str, any]:
             cities_weather[weather['name']] = weather
     return cities_weather
 
+# Out put to json file
 def write_to_file(file_name: str, cities_weather: Dict[str, any]) -> None:
     with open(file_name, "w") as out_file:
         json.dump(cities_weather, out_file)
@@ -51,6 +53,7 @@ def get_min_max(mssg: str, bound_val: float) -> Tuple[float, float]:
         max_str = input(f"Wrong value. Please enter max {mssg} between {min_bound} and {bound_val}: ")
     return min_bound, max_bound
 
+# Get user input
 def get_user_input() -> Tuple[float, float, float, float]:
     lat_min, lat_max = get_min_max("latitude", 90)
     lon_min, lon_max = get_min_max("longitude", 180)

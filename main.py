@@ -5,6 +5,7 @@ import time
 
 def main():
     print("Please enter the region.")
+    # User input a bounding box
     lat_min, lat_max, lon_min, lon_max = get_user_input()
     res = get_cities_weather(lat_min, lat_max, lon_min, lon_max)
     write_to_file("citiesWeather.json", res)
