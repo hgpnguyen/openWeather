@@ -1,3 +1,5 @@
+__pycache__/
 .openWeather
 .env
 .vscode
+citiesWeather.json
